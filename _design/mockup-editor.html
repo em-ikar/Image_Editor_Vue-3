@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;display=swap">
+  <style>
+    body { margin: 0; font-family: 'Roboto', system-ui, sans-serif; background: #121212; color: rgba(255,255,255,.87); -webkit-font-smoothing: antialiased; }
+    a { color: #90caf9; } a:hover { color: #bbdefb; }
+    button { font-family: inherit; cursor: pointer; }
+    button:disabled { opacity: .38; cursor: default; }
+    .vs { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; margin: 0; background: transparent; cursor: pointer; }
+    .vs::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, rgba(255,255,255,.24) 0, rgba(255,255,255,.24) var(--lo), var(--p) var(--lo), var(--p) var(--hi), rgba(255,255,255,.24) var(--hi), rgba(255,255,255,.24) 100%); }
+    .vs::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--p); margin-top: -8px; box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px rgba(0,0,0,.14), 0 1px 3px rgba(0,0,0,.12); }
+    .vs::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, rgba(255,255,255,.24) 0, rgba(255,255,255,.24) var(--lo), var(--p) var(--lo), var(--p) var(--hi), rgba(255,255,255,.24) var(--hi), rgba(255,255,255,.24) 100%); }
+    .vs::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--p); }
+    .vs:focus-visible { outline: none; }
+    .vs:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 12px rgba(255,255,255,.14); }
+    .vs:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 12px rgba(255,255,255,.14); }
+  </style>
+</helmet>
+<div style="--p: {{primary}}; width: 1440px; height: 900px; display: flex; flex-direction: column; background: #121212; overflow: hidden;">
+
+  <!-- v-app-bar -->
+  <header style="height: 64px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 16px 0 20px; background: #212121; box-shadow: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px 0 rgba(0,0,0,.14), 0 1px 10px 0 rgba(0,0,0,.12); position: relative; z-index: 2;">
+    <div style="width: 40px; height: 40px; border-radius: 8px; background: {{primary}}; color: #ffffff; display: flex; align-items: center; justify-content: center;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+    </div>
+    <div style="font-size: 20px; font-weight: 500; letter-spacing: .15px;">Image Editor</div>
+    <div style="width: 1px; height: 28px; background: rgba(255,255,255,.12); margin: 0 8px;"></div>
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-size: 14px; font-weight: 500;">landscape.jpg</div>
+      <div style="font-size: 12px; color: rgba(255,255,255,.7); font-variant-numeric: tabular-nums;">6000 × 4000 px · JPEG</div>
+    </div>
+    <sc-if value="{{edited}}" hint-placeholder-val="{{ false }}">
+      <div style="height: 24px; padding: 0 10px; border-radius: 12px; background: rgba(255,255,255,.12); font-size: 12px; font-weight: 500; display: flex; align-items: center; margin-left: 8px;">Edited</div>
+    </sc-if>
+    <div style="flex-grow: 1;"></div>
+    <a href="Upload.dc.html" style="height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 8px; border-radius: 4px; color: rgba(255,255,255,.87); text-decoration: none; font-size: 14px; font-weight: 500; letter-spacing: 1.25px; text-transform: uppercase;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M17 8l-5-5-5 5"></path><path d="M12 3v12"></path></svg>
+      Replace
+    </a>
+    <button type="button" onClick="{{resetAll}}" disabled="{{pristine}}" style="height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,.38); background: transparent; color: rgba(255,255,255,.87); font-size: 14px; font-weight: 500; letter-spacing: 1.25px; text-transform: uppercase;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 3v6h6"></path></svg>
+      Reset
+    </button>
+    <button type="button" style="height: 44px; padding: 0 20px; display: flex; align-items: center; gap: 8px; border-radius: 4px; border: 0; background: {{primary}}; color: #ffffff; font-size: 14px; font-weight: 500; letter-spacing: 1.25px; text-transform: uppercase; box-shadow: 0 3px 1px -2px rgba(0,0,0,.2), 0 2px 2px 0 rgba(0,0,0,.14), 0 1px 5px 0 rgba(0,0,0,.12);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M7 10l5 5 5-5"></path><path d="M12 15V3"></path></svg>
+      Export
+    </button>
+  </header>
+
+  <div style="flex-grow: 1; display: flex; min-height: 0;">
+
+    <!-- v-main: workspace -->
+    <main style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+      <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; padding: 32px;">
+        <div style="position: relative; width: 760px; height: 507px; overflow: hidden; box-shadow: 0 11px 15px -7px rgba(0,0,0,.4), 0 24px 38px 3px rgba(0,0,0,.28);">
+          <div style="width: 760px; height: 507px; filter: {{filterCss}};">
+            <svg width="760" height="507" viewBox="0 0 760 507" style="display: block;">
+              <defs>
+                <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#2b4c7e"></stop>
+                  <stop offset=".55" stop-color="#e8875b"></stop>
+                  <stop offset="1" stop-color="#f7c873"></stop>
+                </linearGradient>
+                <linearGradient id="lake" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#e39a6a"></stop>
+                  <stop offset="1" stop-color="#1f3c5c"></stop>
+                </linearGradient>
+              </defs>
+              <rect width="760" height="330" fill="url(#sky)"></rect>
+              <circle cx="520" cy="262" r="46" fill="#ffe29a"></circle>
+              <path d="M0 250 L120 150 L210 230 L330 110 L450 240 L560 170 L680 250 L760 200 L760 330 L0 330 Z" fill="#6b4e71"></path>
+              <path d="M0 290 L90 230 L190 280 L300 205 L420 290 L530 240 L640 300 L760 250 L760 330 L0 330 Z" fill="#3e3a5d"></path>
+              <rect y="330" width="760" height="177" fill="url(#lake)"></rect>
+              <ellipse cx="520" cy="360" rx="70" ry="8" fill="#ffe29a" opacity=".6"></ellipse>
+              <ellipse cx="520" cy="385" rx="44" ry="5" fill="#ffe29a" opacity=".35"></ellipse>
+              <path d="M0 420 C120 395 220 440 360 430 C500 420 620 450 760 425 L760 507 L0 507 Z" fill="#23402f"></path>
+              <path d="M70 430 L95 340 L120 430 Z M110 440 L140 320 L170 440 Z M620 440 L648 350 L676 440 Z M665 445 L690 370 L715 445 Z" fill="#1a2f22"></path>
+            </svg>
+          </div>
+
+          <sc-if value="{{original}}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; left: 16px; top: 16px; height: 28px; padding: 0 12px; border-radius: 14px; background: rgba(0,0,0,.72); color: #ffffff; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              Original
+            </div>
+          </sc-if>
+
+          <sc-if value="{{isCrop}}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; {{cropRect}} border: 1px solid rgba(255,255,255,.9); box-shadow: 0 0 0 2000px rgba(0,0,0,.55); box-sizing: border-box;">
+              <div style="position: absolute; left: 33.333%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.35);"></div>
+              <div style="position: absolute; left: 66.666%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.35);"></div>
+              <div style="position: absolute; top: 33.333%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,.35);"></div>
+              <div style="position: absolute; top: 66.666%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,.35);"></div>
+              <div style="position: absolute; left: -6px; top: -6px; width: 12px; height: 12px; background: #ffffff; border-radius: 2px;"></div>
+              <div style="position: absolute; right: -6px; top: -6px; width: 12px; height: 12px; background: #ffffff; border-radius: 2px;"></div>
+              <div style="position: absolute; left: -6px; bottom: -6px; width: 12px; height: 12px; background: #ffffff; border-radius: 2px;"></div>
+              <div style="position: absolute; right: -6px; bottom: -6px; width: 12px; height: 12px; background: #ffffff; border-radius: 2px;"></div>
+              <div style="position: absolute; left: 50%; top: -5px; width: 24px; height: 10px; margin-left: -12px; background: #ffffff; border-radius: 2px;"></div>
+              <div style="position: absolute; left: 50%; bottom: -5px; width: 24px; height: 10px; margin-left: -12px; background: #ffffff; border-radius: 2px;"></div>
+              <div style="position: absolute; top: 50%; left: -5px; width: 10px; height: 24px; margin-top: -12px; background: #ffffff; border-radius: 2px;"></div>
+              <div style="position: absolute; top: 50%; right: -5px; width: 10px; height: 24px; margin-top: -12px; background: #ffffff; border-radius: 2px;"></div>
+              <div style="position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); height: 26px; padding: 0 10px; border-radius: 13px; background: rgba(0,0,0,.72); color: #ffffff; font-size: 12px; font-weight: 500; display: flex; align-items: center; white-space: nowrap; font-variant-numeric: tabular-nums;">{{cropW}} × {{cropH}} px</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- bottom toolbar -->
+      <div style="height: 64px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 20px; border-top: 1px solid rgba(255,255,255,.08);">
+        <div style="display: flex; align-items: center; border: 1px solid rgba(255,255,255,.24); border-radius: 4px; overflow: hidden;">
+          <button type="button" aria-label="Zoom out" style="width: 44px; height: 44px; border: 0; background: transparent; color: rgba(255,255,255,.87); display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg>
+          </button>
+          <button type="button" style="height: 44px; padding: 0 14px; border: 0; border-left: 1px solid rgba(255,255,255,.24); border-right: 1px solid rgba(255,255,255,.24); background: rgba(255,255,255,.08); color: rgba(255,255,255,.87); font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums;">Fit · 13%</button>
+          <button type="button" aria-label="Zoom in" style="width: 44px; height: 44px; border: 0; background: transparent; color: rgba(255,255,255,.87); display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          </button>
+        </div>
+        <div style="flex-grow: 1;"></div>
+        <button type="button" onClick="{{toggleOriginal}}" aria-pressed="{{original}}" style="height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 8px; border-radius: 4px; border: 1px solid {{compareBorder}}; background: {{compareBg}}; color: rgba(255,255,255,.87); font-size: 14px; font-weight: 500; letter-spacing: 1.25px; text-transform: uppercase;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          View original
+        </button>
+      </div>
+    </main>
+
+    <!-- v-navigation-drawer location="right" -->
+    <aside style="width: 380px; flex-shrink: 0; display: flex; flex-direction: column; background: #212121; border-left: 1px solid rgba(255,255,255,.12);">
+      <!-- v-tabs -->
+      <div role="tablist" style="height: 56px; flex-shrink: 0; display: flex; border-bottom: 1px solid rgba(255,255,255,.12);">
+        <button type="button" role="tab" aria-selected="{{isCrop}}" onClick="{{goCrop}}" style="flex-grow: 1; flex-basis: 0; height: 56px; border: 0; border-bottom: 2px solid {{cropTabLine}}; background: transparent; color: {{cropTabColor}}; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 500; letter-spacing: 1.25px; text-transform: uppercase;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v14a2 2 0 0 0 2 2h14"></path><path d="M18 22V8a2 2 0 0 0-2-2H2"></path></svg>
+          Crop
+        </button>
+        <button type="button" role="tab" aria-selected="{{isAdjust}}" onClick="{{goAdjust}}" style="flex-grow: 1; flex-basis: 0; height: 56px; border: 0; border-bottom: 2px solid {{adjustTabLine}}; background: transparent; color: {{adjustTabColor}}; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 500; letter-spacing: 1.25px; text-transform: uppercase;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>
+          Adjust
+        </button>
+      </div>
+
+      <!-- Adjust panel -->
+      <sc-if value="{{isAdjust}}" hint-placeholder-val="{{ true }}">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; min-height: 0;">
+          <div style="flex-grow: 1; padding: 24px; display: flex; flex-direction: column; gap: 24px;">
+            <div style="font-size: 12px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,.7);">Light &amp; color</div>
+
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+                <label for="sl-brightness" style="flex-grow: 1; font-size: 16px;">Brightness</label>
+                <output for="sl-brightness" style="min-width: 56px; height: 32px; box-sizing: border-box; border: 1px solid rgba(255,255,255,.24); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-variant-numeric: tabular-nums;">{{bText}}</output>
+                <button type="button" aria-label="Reset brightness" onClick="{{resetB}}" disabled="{{bZero}}" style="width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: rgba(255,255,255,.7); display: flex; align-items: center; justify-content: center;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 3v6h6"></path></svg>
+                </button>
+              </div>
+              <input id="sl-brightness" class="vs" type="range" min="-100" max="100" step="1" value="{{b}}" onChange="{{setB}}" style="--lo: {{bLo}}%; --hi: {{bHi}}%;">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 0 18z" fill="rgba(255,255,255,.7)"></path></svg>
+                <label for="sl-contrast" style="flex-grow: 1; font-size: 16px;">Contrast</label>
+                <output for="sl-contrast" style="min-width: 56px; height: 32px; box-sizing: border-box; border: 1px solid rgba(255,255,255,.24); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-variant-numeric: tabular-nums;">{{cText}}</output>
+                <button type="button" aria-label="Reset contrast" onClick="{{resetC}}" disabled="{{cZero}}" style="width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: rgba(255,255,255,.7); display: flex; align-items: center; justify-content: center;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 3v6h6"></path></svg>
+                </button>
+              </div>
+              <input id="sl-contrast" class="vs" type="range" min="-100" max="100" step="1" value="{{c}}" onChange="{{setC}}" style="--lo: {{cLo}}%; --hi: {{cHi}}%;">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2" stroke-linejoin="round"><path d="M12 2.7l5.7 5.7a8 8 0 1 1-11.4 0z"></path></svg>
+                <label for="sl-saturation" style="flex-grow: 1; font-size: 16px;">Saturation</label>
+                <output for="sl-saturation" style="min-width: 56px; height: 32px; box-sizing: border-box; border: 1px solid rgba(255,255,255,.24); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-variant-numeric: tabular-nums;">{{sText}}</output>
+                <button type="button" aria-label="Reset saturation" onClick="{{resetS}}" disabled="{{sZero}}" style="width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: rgba(255,255,255,.7); display: flex; align-items: center; justify-content: center;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 3v6h6"></path></svg>
+                </button>
+              </div>
+              <input id="sl-saturation" class="vs" type="range" min="-100" max="100" step="1" value="{{s}}" onChange="{{setS}}" style="--lo: {{sLo}}%; --hi: {{sHi}}%;">
+            </div>
+
+            <div style="display: flex; gap: 12px; padding: 14px 16px; border-radius: 4px; background: rgba(255,255,255,.06); font-size: 13px; line-height: 1.5; color: rgba(255,255,255,.7);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink: 0; margin-top: 1px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+              <div>Edits are non-destructive. The original file stays untouched until you export.</div>
+            </div>
+          </div>
+          <div style="padding: 16px 24px; border-top: 1px solid rgba(255,255,255,.12);">
+            <button type="button" onClick="{{resetAdjust}}" disabled="{{adjustPristine}}" style="width: 100%; height: 44px; border-radius: 4px; border: 1px solid rgba(255,255,255,.38); background: transparent; color: rgba(255,255,255,.87); font-size: 14px; font-weight: 500; letter-spacing: 1.25px; text-transform: uppercase;">Reset adjustments</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- Crop panel -->
+      <sc-if value="{{isCrop}}" hint-placeholder-val="{{ false }}">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; min-height: 0;">
+          <div style="flex-grow: 1; padding: 24px; display: flex; flex-direction: column; gap: 20px;">
+            <div style="font-size: 12px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,.7);">Aspect ratio</div>
+            <div role="radiogroup" aria-label="Aspect ratio" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+              <sc-for list="{{ratios}}" as="r" hint-placeholder-count="6">
+                <button type="button" role="radio" aria-checked="{{r.selected}}" onClick="{{r.pick}}" style="height: 44px; border-radius: 22px; border: 1px solid {{r.border}}; background: {{r.bg}}; color: {{r.color}}; font-size: 14px; font-weight: 500;">{{r.label}}</button>
+              </sc-for>
+            </div>
+
+            <div style="font-size: 12px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,.7); margin-top: 8px;">Output size</div>
+            <div style="display: flex; align-items: flex-end; gap: 12px;">
+              <div style="flex-grow: 1; flex-basis: 0; display: flex; flex-direction: column; gap: 6px;">
+                <label for="crop-w" style="font-size: 12px; color: rgba(255,255,255,.7);">Width, px</label>
+                <input id="crop-w" type="text" readonly value="{{cropW}}" style="height: 48px; box-sizing: border-box; padding: 0 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,.38); background: transparent; color: rgba(255,255,255,.87); font-family: inherit; font-size: 16px; font-variant-numeric: tabular-nums;">
+              </div>
+              <div style="height: 48px; display: flex; align-items: center; color: rgba(255,255,255,.7);">×</div>
+              <div style="flex-grow: 1; flex-basis: 0; display: flex; flex-direction: column; gap: 6px;">
+                <label for="crop-h" style="font-size: 12px; color: rgba(255,255,255,.7);">Height, px</label>
+                <input id="crop-h" type="text" readonly value="{{cropH}}" style="height: 48px; box-sizing: border-box; padding: 0 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,.38); background: transparent; color: rgba(255,255,255,.87); font-family: inherit; font-size: 16px; font-variant-numeric: tabular-nums;">
+              </div>
+            </div>
+            <div style="font-size: 13px; line-height: 1.5; color: rgba(255,255,255,.7);">Drag the frame or its handles on the image. The crop is stored as a rectangle in original-image pixels.</div>
+          </div>
+          <div style="padding: 16px 24px; border-top: 1px solid rgba(255,255,255,.12); display: flex; gap: 12px;">
+            <button type="button" onClick="{{goAdjust}}" style="flex-grow: 1; flex-basis: 0; height: 44px; border-radius: 4px; border: 0; background: transparent; color: rgba(255,255,255,.87); font-size: 14px; font-weight: 500; letter-spacing: 1.25px; text-transform: uppercase;">Cancel</button>
+            <button type="button" onClick="{{goAdjust}}" style="flex-grow: 1; flex-basis: 0; height: 44px; border-radius: 4px; border: 0; background: {{primary}}; color: #ffffff; font-size: 14px; font-weight: 500; letter-spacing: 1.25px; text-transform: uppercase; box-shadow: 0 3px 1px -2px rgba(0,0,0,.2), 0 2px 2px 0 rgba(0,0,0,.14), 0 1px 5px 0 rgba(0,0,0,.12);">Apply crop</button>
+          </div>
+        </div>
+      </sc-if>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"primary":{"editor":"color","default":"#1976D2","options":["#1976D2","#00796B","#6A1B9A","#C62828"]},"startMode":{"editor":"enum","options":["adjust","crop"],"default":"adjust"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.state || {};
+    const primary = this.props.primary ?? '#1976D2';
+    const mode = st.mode ?? (this.props.startMode ?? 'adjust');
+    const b = st.b ?? 0, c = st.c ?? 0, s = st.s ?? 0;
+    const original = !!st.original;
+    const ratioId = st.ratio ?? 'free';
+
+    const fmt = (v) => (v > 0 ? '+' + v : String(v));
+    const lo = (v) => Math.min(50, (v + 100) / 2);
+    const hi = (v) => Math.max(50, (v + 100) / 2);
+    const num = (e) => Number(e.target.value);
+
+    const filterCss = original ? 'none' :
+      'brightness(' + (1 + b / 100) + ') contrast(' + (1 + c / 100) + ') saturate(' + (1 + s / 100) + ')';
+
+    const BW = 760, BH = 507, SRC_W = 6000;
+    const defs = [
+      { id: 'free', label: 'Free', r: null },
+      { id: 'orig', label: '3:2', r: 1.5 },
+      { id: 'sq', label: '1:1', r: 1 },
+      { id: '43', label: '4:3', r: 4 / 3 },
+      { id: '169', label: '16:9', r: 16 / 9 },
+      { id: 'a4', label: 'A4', r: 210 / 297 }
+    ];
+    const cur = defs.find((d) => d.id === ratioId) || defs[0];
+    let w, h;
+    if (!cur.r) { w = 560; h = 360; }
+    else {
+      const mw = BW * 0.84, mh = BH * 0.84;
+      if (mw / cur.r <= mh) { w = mw; h = mw / cur.r; } else { h = mh; w = mh * cur.r; }
+    }
+    const left = Math.round((BW - w) / 2), top = Math.round((BH - h) / 2);
+    const scale = SRC_W / BW;
+
+    const ratios = defs.map((d) => {
+      const sel = d.id === ratioId;
+      return {
+        label: d.label, selected: sel,
+        border: sel ? primary : 'rgba(255,255,255,.24)',
+        bg: sel ? primary : 'transparent',
+        color: sel ? '#ffffff' : 'rgba(255,255,255,.87)',
+        pick: () => this.setState({ ratio: d.id })
+      };
+    });
+
+    const adjustPristine = b === 0 && c === 0 && s === 0;
+
+    return {
+      primary, b, c, s, original, filterCss, ratios,
+      isCrop: mode === 'crop', isAdjust: mode !== 'crop',
+      goCrop: () => this.setState({ mode: 'crop' }),
+      goAdjust: () => this.setState({ mode: 'adjust' }),
+      bText: fmt(b), cText: fmt(c), sText: fmt(s),
+      bLo: lo(b), bHi: hi(b), cLo: lo(c), cHi: hi(c), sLo: lo(s), sHi: hi(s),
+      bZero: b === 0, cZero: c === 0, sZero: s === 0,
+      setB: (e) => this.setState({ b: num(e) }),
+      setC: (e) => this.setState({ c: num(e) }),
+      setS: (e) => this.setState({ s: num(e) }),
+      resetB: () => this.setState({ b: 0 }),
+      resetC: () => this.setState({ c: 0 }),
+      resetS: () => this.setState({ s: 0 }),
+      resetAdjust: () => this.setState({ b: 0, c: 0, s: 0 }),
+      resetAll: () => this.setState({ b: 0, c: 0, s: 0, ratio: 'free', original: false }),
+      adjustPristine,
+      pristine: adjustPristine && ratioId === 'free',
+      edited: !adjustPristine,
+      toggleOriginal: () => this.setState({ original: !original }),
+      compareBg: original ? 'rgba(255,255,255,.16)' : 'transparent',
+      compareBorder: original ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.24)',
+      cropTabLine: mode === 'crop' ? primary : 'transparent',
+      cropTabColor: mode === 'crop' ? '#ffffff' : 'rgba(255,255,255,.7)',
+      adjustTabLine: mode !== 'crop' ? primary : 'transparent',
+      adjustTabColor: mode !== 'crop' ? '#ffffff' : 'rgba(255,255,255,.7)',
+      cropRect: 'left: ' + left + 'px; top: ' + top + 'px; width: ' + Math.round(w) + 'px; height: ' + Math.round(h) + 'px;',
+      cropW: Math.round(w * scale), cropH: Math.round(h * scale)
+    };
+  }
+}
+</script>
+</body>
+</html>

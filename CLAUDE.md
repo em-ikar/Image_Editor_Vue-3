@@ -5,6 +5,10 @@ apply a filter, compare with the original, and download the result.
 This is a **test task** judged on code quality, correctness and that it runs
 out of the box. Prefer small, clean, well-typed code over extra features.
 
+## UI spec
+
+See _design/DESIGN.md
+
 ## Stack & setup
 
 - Vue 3 (`<script setup lang="ts">`, Composition API)
