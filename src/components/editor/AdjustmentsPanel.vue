@@ -31,7 +31,8 @@ const saturation = bind('saturation');
       <div class="text-overline text-medium-emphasis">Filter</div>
       <FilterPicker />
 
-      <v-alert type="info" variant="tonal" density="compact">
+      <!-- <v-alert class="flex-0-0" type="info" variant="tonal" density="compact"> -->
+      <v-alert class="flex-0-0" color="#2f2f2f" type="info" style="color: #c3c3c3;" density="compact">
         Edits are non-destructive. The original file stays untouched until you export.
       </v-alert>
     </div>

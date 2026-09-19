@@ -17,8 +17,8 @@ defineEmits<{
 
 <template>
   <div
-    class="d-flex align-center ga-2 px-5"
-    style="height: 64px; flex-shrink: 0; border-top: 1px solid rgba(255, 255, 255, 0.08)"
+    class="d-flex align-center ga-2 px-5 py-5"
+    style="height: 77px; flex-shrink: 0; border-top: 1px solid rgba(255, 255, 255, 0.08)"
   >
     <div class="d-flex align-center zoom-group">
       <v-btn
@@ -47,11 +47,10 @@ defineEmits<{
       variant="outlined"
       size="large"
       prepend-icon="mdi-compare"
-      :aria-pressed="showOriginal"
       :disabled="viewOriginalDisabled"
       @click="$emit('toggle-original')"
     >
-      View original
+      {{ showOriginal ? 'View edited' : 'View original' }}
     </v-btn>
   </div>
 </template>

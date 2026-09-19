@@ -35,18 +35,17 @@ function onReplace() {
 </script>
 
 <template>
-  <v-app-bar color="surface" elevation="4" height="64">
+  <v-app-bar color="surface" elevation="4" height="77">
     <template #prepend>
       <v-avatar color="primary" rounded="lg" size="40" class="ml-2">
         <v-icon icon="mdi-image" color="white" />
       </v-avatar>
     </template>
 
-    <!-- <v-app-bar-title class="flex-grow-0 text-body-1 font-weight-medium">Image Editor</v-app-bar-title> -->
-    <v-app-bar-title>Image Editor</v-app-bar-title>
+    <v-app-bar-title class="flex-0-0">Image Editor</v-app-bar-title>
 
     <template v-if="editor.hasImage && editor.original">
-      <v-divider vertical class="mx-3" />
+      <v-divider vertical class="mx-5" />
       <div class="d-flex flex-column">
         <span class="text-body-2 font-weight-medium">{{ editor.original.name }}</span>
         <span class="text-caption text-medium-emphasis" style="font-variant-numeric: tabular-nums">
@@ -59,7 +58,7 @@ function onReplace() {
     <v-spacer />
 
     <v-btn v-if="editor.hasImage" variant="text" size="large" prepend-icon="mdi-tray-arrow-up" @click="onReplace">
-      Replace
+      Upload New
     </v-btn>
     <v-btn
       variant="outlined"
@@ -73,6 +72,7 @@ function onReplace() {
     </v-btn>
     <v-btn
       color="primary"
+      variant="flat"
       size="large"
       prepend-icon="mdi-tray-arrow-down"
       class="ml-2 mr-2"

@@ -58,7 +58,7 @@ function onTabChange(value: unknown) {
       />
     </div>
 
-    <v-navigation-drawer location="right" width="380" permanent>
+    <v-navigation-drawer location="right" width="430" permanent>
       <div class="d-flex flex-column" style="height: 100%">
         <div
           v-if="!editor.hasImage"
@@ -72,7 +72,12 @@ function onTabChange(value: unknown) {
         </div>
 
         <template v-else>
-          <v-tabs :model-value="editor.mode" grow @update:model-value="onTabChange">
+          <v-tabs
+            class="flex-0-0"
+            :model-value="editor.mode"
+            grow
+            @update:model-value="onTabChange"
+          >
             <v-tab value="crop" prepend-icon="mdi-crop">Crop</v-tab>
             <v-tab value="adjust" prepend-icon="mdi-tune-variant">Adjust</v-tab>
           </v-tabs>

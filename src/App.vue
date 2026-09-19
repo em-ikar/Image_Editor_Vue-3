@@ -7,7 +7,7 @@ import EditorLayout from './components/editor/EditorLayout.vue';
   <v-app>
     <AppEditorBar />
     <v-main>
-      <div style="height: calc(100dvh - 64px)">
+      <div style="height: calc(100dvh - 77px)">
         <EditorLayout />
       </div>
     </v-main>
