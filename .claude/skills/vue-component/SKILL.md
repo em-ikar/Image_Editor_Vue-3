@@ -98,9 +98,14 @@ Pitfalls:
   Use `accept="image/*"`, clear the input after a successful load if the
   same file should be re-selectable.
 - **`v-slider`** emits on every drag tick (`update:modelValue`) — that's what
-  we want for the live CSS preview. Use `@end` only for expensive work.
+  we want for the live canvas preview. Use `@end` only for expensive work.
   Add `hide-details`, `thumb-label`, explicit `min`/`max`/`step`, and
   show the current value; give each slider its own reset affordance.
+- **`v-input` / `v-alert` grow inside a flex column** (`flex: 1`): in a
+  `d-flex flex-column` panel they stretch to fill it. Add `class="flex-0-0"`.
+- **`v-tabs` force-selects the first enabled tab** when its model is
+  undefined (e.g. no image yet). Pass `:mandatory="false"` and ignore
+  non-string `update:model-value` values.
 - Bind sliders to the store through a computed getter/setter that calls
   `setAdjustment`, not by mutating `store.adjustments.x` from the template.
 
@@ -117,7 +122,7 @@ Pitfalls:
 ## Accessibility
 
 - Every control has a visible label or `aria-label`.
-- Preview `<img>` has meaningful `alt`.
+- The preview `<canvas>` has `role="img"` and a meaningful `aria-label`.
 - "View original" works by button toggle, not only hover (hover doesn't
   exist on touch and keyboard).
 
@@ -127,4 +132,4 @@ Pitfalls:
 - [ ] Component placed per `component-map.md`
 - [ ] Empty / loading / error / disabled states handled
 - [ ] Icon buttons labeled
-- [ ] `npx vue-tsc --noEmit` passes, no Vue warnings in console
+- [ ] `npm run type-check` and `npm run test` pass, no Vue warnings in console

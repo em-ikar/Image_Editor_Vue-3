@@ -1,5 +1,11 @@
 # Cropper editor component template
 
+Generic starting point. In this project the real component is
+`src/components/editor/CropperPanel.vue`: it emits/stores a crop **rectangle in
+natural pixels** (`naturalRect()`) instead of exporting a bitmap
+(`exportAtNaturalSize` below), and it positions the selection from
+`store.crop` on mount (`showStoredCrop()`).
+
 Starting point for a cropper component. Adapt names and props to the
 project; keep the structure (template refs, `$ready`, `:key`, local element
 refs, serializable emits).

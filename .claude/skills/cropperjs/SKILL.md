@@ -96,6 +96,10 @@ in `node_modules/cropperjs` instead of guessing.
 
 ## Export gotcha: output resolution
 
+(This project no longer exports a cropped bitmap: it stores the crop as a
+rectangle in natural pixels, see "State rules". The gotcha below matters only
+if you call `$toCanvas` yourself.)
+
 `selection.$toCanvas()` without options returns a canvas the size of the
 selection **in screen pixels**, not in original image pixels. A 300×200
 selection over a 4000px photo gives a 300×200 result. To export at source
@@ -117,6 +121,6 @@ image's `naturalWidth × naturalHeight`.
 - [ ] No v1 API anywhere (`grep -r "getCroppedCanvas\|new Cropper" src`)
 - [ ] `isCustomElement` configured, no "Failed to resolve component" warnings
 - [ ] Rotate/flip/zoom/aspect ratio/reset work after loading a second image
-- [ ] Exported image size matches source resolution
+- [ ] The stored crop rectangle is in natural pixels (select the whole image → `0, 0, naturalWidth, naturalHeight`)
 - [ ] Object URLs revoked, no cropper elements in Pinia
-- [ ] `npx vue-tsc --noEmit` passes
+- [ ] `npm run type-check` passes

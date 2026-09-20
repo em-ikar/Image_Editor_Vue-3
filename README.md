@@ -14,6 +14,7 @@ derived from it.
 - [Pinia](https://pinia.vuejs.org/)
 - TypeScript (strict)
 - [Cropper.js v2](https://fengyuanchen.github.io/cropperjs/) (web components) for cropping
+- [Vitest](https://vitest.dev/) for unit tests of the pure modules
 - [Vite](https://vite.dev/) as dev server and bundler
 
 ## Requirements
@@ -148,5 +149,7 @@ will be replaced. After applying, warnings are shown in the tab:
 
 ## Status
 
-This is a test task. Project setup (tooling, dependencies, folder structure)
-is in place; editor features are being built incrementally.
+This is a test task. Implemented: image upload, crop, live brightness / contrast /
+saturation sliders, greyscale and sepia filters, view original, reset, PNG export,
+and the bonus — exporting the operations as JSON and importing them again
+(Operations tab).
