@@ -1,8 +1,15 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import AppEditorBar from './components/editor/AppEditorBar.vue';
+import EditorLayout from './components/editor/EditorLayout.vue';
+</script>
 
 <template>
   <v-app>
-    <v-app-bar title="Image Editor" />
-    <v-main />
+    <AppEditorBar />
+    <v-main>
+      <div style="height: calc(100dvh - 77px)">
+        <EditorLayout />
+      </div>
+    </v-main>
   </v-app>
 </template>
