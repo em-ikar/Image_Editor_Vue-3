@@ -1,33 +1,17 @@
-function loadImage(url: string): Promise<HTMLImageElement> {
+import { render, type RenderSource } from '@/render/render';
+import type { EditDocument, Op } from '@/types/operations';
+
+/** Renders the source at full resolution through the shared `render()` and encodes it as PNG. */
+export function renderToPngBlob(source: RenderSource, ops: readonly Op[]): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  render(source, ops, canvas);
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Could not load the image for export.'));
-    img.src = url;
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Export failed.'))), 'image/png');
   });
 }
 
-const EXPORTABLE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
-
-/** Renders the working image with the same CSS filter used for the live preview. */
-export async function renderToBlob(url: string, cssFilter: string, sourceType?: string): Promise<Blob> {
-  const img = await loadImage(url);
-  const canvas = document.createElement('canvas');
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas is not supported in this browser.');
-
-  ctx.filter = cssFilter || 'none';
-  ctx.drawImage(img, 0, 0);
-
-  const type = sourceType && EXPORTABLE_TYPES.has(sourceType) ? sourceType : 'image/png';
-  const quality = type === 'image/png' ? undefined : 0.92;
-
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Export failed.'))), type, quality);
-  });
+export function editDocumentToBlob(doc: EditDocument): Blob {
+  return new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
 }
 
 export function downloadBlob(blob: Blob, fileName: string) {
@@ -36,12 +20,18 @@ export function downloadBlob(blob: Blob, fileName: string) {
   a.href = url;
   a.download = fileName;
   a.click();
-  URL.revokeObjectURL(url);
+  // Revoke later: some browsers start reading the URL asynchronously.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+function baseName(originalName: string): string {
+  return originalName.replace(/\.[^.]+$/, '');
 }
 
 export function editedFileName(originalName: string): string {
-  const match = /\.([a-zA-Z0-9]+)$/.exec(originalName);
-  const ext = match?.[1] ?? 'png';
-  const base = originalName.replace(/\.[^.]+$/, '');
-  return `${base}-edited.${ext}`;
+  return `${baseName(originalName)}-edited.png`;
+}
+
+export function editedOpsFileName(originalName: string): string {
+  return `${baseName(originalName)}-edited.ops.json`;
 }

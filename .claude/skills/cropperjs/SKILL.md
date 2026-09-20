@@ -71,8 +71,14 @@ in `node_modules/cropperjs` instead of guessing.
   Keep element refs local to the component.
 - The editor state model is defined in the `editor-store` skill. For this
   component that means: load `store.original.url` (always the original, never
-  the previous crop), and on "Apply" export with `exportAtNaturalSize` and
-  call `store.applyCrop(blob)`. Nothing else from the cropper goes to the store.
+  the previous crop), and on "Apply" convert the selection to a rectangle in
+  the original's natural pixels and call `store.applyCrop(rect)`; no bitmap is
+  produced. Nothing else from the cropper goes to the store.
+- **Selection → natural pixels**: Cropper v2 has no `getData()`, and
+  `image.$getTransform()`'s translation is relative to the image element's own
+  layout offset, so it is not enough on its own. Use
+  `(selection.getBoundingClientRect() − image.getBoundingClientRect()) / (imageBox.width / original.width)`
+  (see `naturalRect()` in `CropperPanel.vue`) and clamp to the image bounds.
 
 ## Common operations
 

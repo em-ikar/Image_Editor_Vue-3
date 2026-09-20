@@ -13,7 +13,7 @@ const emit = defineEmits<{
 }>();
 
 const editor = useEditorStore();
-const { original, workingUrl, previewUrl, previewFilter, mode, showOriginal } = storeToRefs(editor);
+const { original, crop, mode, showOriginal } = storeToRefs(editor);
 
 const stageEl = useTemplateRef<HTMLDivElement>('stageEl');
 const cropperPanel = useTemplateRef<InstanceType<typeof CropperPanel>>('cropperPanel');
@@ -31,41 +31,38 @@ onMounted(() => {
 
 onBeforeUnmount(() => observer?.disconnect());
 
-// Tracks the natural size of whatever bitmap is actually on screen (the
-// original or the cropped result), since cropping changes it.
-const workingNaturalSize = ref<{ width: number; height: number } | null>(null);
+// Natural size of the image on screen: the whole original while comparing,
+// otherwise the crop rectangle (if any).
+const naturalSize = computed(() => (showOriginal.value ? original.value : (crop.value ?? original.value)));
 
-function onPreviewLoad(event: Event) {
-  const img = event.target as HTMLImageElement;
-  workingNaturalSize.value = { width: img.naturalWidth, height: img.naturalHeight };
-}
-
-const naturalSize = computed(() => workingNaturalSize.value ?? original.value);
-
-const fitPercent = computed(() => {
-  if (!naturalSize.value || !stageSize.value.width || !stageSize.value.height) return 100;
-  const scale = Math.min(
+const fitScale = computed(() => {
+  if (!naturalSize.value || !stageSize.value.width || !stageSize.value.height) return 1;
+  return Math.min(
     stageSize.value.width / naturalSize.value.width,
     stageSize.value.height / naturalSize.value.height,
     1,
   );
-  return Math.max(1, Math.round(scale * 100));
 });
+const fitPercent = computed(() => Math.max(1, Math.round(fitScale.value * 100)));
 
 const zoomOverride = ref<number | null>(null);
 
-// A crop replaces the working bitmap: drop the stale natural size and zoom
-// override so the new result starts back at "Fit".
-watch(workingUrl, () => {
-  workingNaturalSize.value = null;
+// A crop changes the image size: drop the zoom override so it starts back at "Fit".
+watch(crop, () => {
   zoomOverride.value = null;
 });
 
 const zoomPercent = computed(() => zoomOverride.value ?? fitPercent.value);
 const isFit = computed(() => zoomOverride.value === null);
-// Scale applied on top of the image's natural "fit" rendering (which already
-// fills the stage via max-width/max-height), so 1 = exactly at fitPercent.
-const relativeZoom = computed(() => zoomPercent.value / fitPercent.value);
+// Size of the preview when fitted to the stage, in CSS pixels.
+const fitSize = computed(() => ({
+  width: Math.round((naturalSize.value?.width ?? 0) * fitScale.value),
+  height: Math.round((naturalSize.value?.height ?? 0) * fitScale.value),
+}));
+// Scale applied on top of the fitted size, so 1 = exactly at fitPercent.
+const relativeZoom = computed(() =>
+  zoomOverride.value === null ? 1 : zoomOverride.value / 100 / fitScale.value,
+);
 
 function zoomIn() {
   zoomOverride.value = Math.min(400, zoomPercent.value + 10);
@@ -104,12 +101,7 @@ defineExpose({ applyCrop });
             <v-icon icon="mdi-eye-outline" size="16" />
             Original
           </div>
-          <ImagePreview
-            :src="previewUrl ?? ''"
-            :filter="previewFilter"
-            :scale="relativeZoom"
-            @load="onPreviewLoad"
-          />
+          <ImagePreview :width="fitSize.width" :height="fitSize.height" :scale="relativeZoom" />
         </div>
       </template>
     </div>

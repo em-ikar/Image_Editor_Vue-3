@@ -6,6 +6,7 @@ import ImageUpload from './ImageUpload.vue';
 import EditorStage from './EditorStage.vue';
 import AdjustmentsPanel from './AdjustmentsPanel.vue';
 import CropPanel from './CropPanel.vue';
+import OperationsPanel from './OperationsPanel.vue';
 
 const editor = useEditorStore();
 
@@ -34,7 +35,7 @@ function onSelectionChange(size: { width: number; height: number }) {
 }
 
 function applyCrop() {
-  void stage.value?.applyCrop();
+  stage.value?.applyCrop();
 }
 
 function cancelCrop() {
@@ -42,8 +43,11 @@ function cancelCrop() {
 }
 
 function onTabChange(value: unknown) {
-  editor.setMode(value as EditorMode);
+  if (typeof value === 'string') editor.setMode(value as EditorMode);
 }
+
+// Crop and Adjust need an image; Operations works without one (a JSON can be loaded first).
+const activeTab = computed(() => (editor.hasImage || editor.mode === 'operations' ? editor.mode : undefined));
 </script>
 
 <template>
@@ -58,43 +62,37 @@ function onTabChange(value: unknown) {
       />
     </div>
 
-    <v-navigation-drawer location="right" width="430" permanent>
+    <v-navigation-drawer location="right" width="435" permanent>
       <div class="d-flex flex-column" style="height: 100%">
-        <div
-          v-if="!editor.hasImage"
-          class="d-flex flex-column align-center justify-center text-center pa-8 ga-3"
-          style="height: 100%"
-        >
-          <div class="text-subtitle-1 font-weight-medium">No image yet</div>
-          <div class="text-body-2 text-medium-emphasis">
-            Crop and adjustment tools appear once an image is loaded.
-          </div>
-        </div>
+        <v-tabs class="flex-0-0" :model-value="activeTab" :mandatory="false" grow @update:model-value="onTabChange">
+          <v-tab value="crop" prepend-icon="mdi-crop" :disabled="!editor.hasImage">Crop</v-tab>
+          <v-tab value="adjust" prepend-icon="mdi-tune-variant" :disabled="!editor.hasImage">Adjust</v-tab>
+          <v-tab value="operations" prepend-icon="mdi-code-json">Operations</v-tab>
+        </v-tabs>
 
-        <template v-else>
-          <v-tabs
-            class="flex-0-0"
-            :model-value="editor.mode"
-            grow
-            @update:model-value="onTabChange"
+        <div class="flex-grow-1" style="min-height: 0">
+          <OperationsPanel v-if="editor.mode === 'operations'" />
+          <div
+            v-else-if="!editor.hasImage"
+            class="d-flex flex-column align-center justify-center text-center pa-8 ga-3"
+            style="height: 100%"
           >
-            <v-tab value="crop" prepend-icon="mdi-crop">Crop</v-tab>
-            <v-tab value="adjust" prepend-icon="mdi-tune-variant">Adjust</v-tab>
-          </v-tabs>
-
-          <div class="flex-grow-1" style="min-height: 0">
-            <CropPanel
-              v-if="editor.mode === 'crop'"
-              :aspect-id="aspectId"
-              :crop-size="cropSize"
-              :original-ratio-label="originalRatioLabel"
-              @select-aspect="selectAspect"
-              @cancel="cancelCrop"
-              @apply="applyCrop"
-            />
-            <AdjustmentsPanel v-else />
+            <div class="text-subtitle-1 font-weight-medium">No image yet</div>
+            <div class="text-body-2 text-medium-emphasis">
+              Crop and adjustment tools appear once an image is loaded.
+            </div>
           </div>
-        </template>
+          <CropPanel
+            v-else-if="editor.mode === 'crop'"
+            :aspect-id="aspectId"
+            :crop-size="cropSize"
+            :original-ratio-label="originalRatioLabel"
+            @select-aspect="selectAspect"
+            @cancel="cancelCrop"
+            @apply="applyCrop"
+          />
+          <AdjustmentsPanel v-else />
+        </div>
       </div>
     </v-navigation-drawer>
   </div>

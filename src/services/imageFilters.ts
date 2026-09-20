@@ -20,27 +20,6 @@ export const FILTERS: ReadonlyArray<{ id: FilterId; label: string }> = [
   { id: 'sepia', label: 'Sepia' },
 ];
 
-const FILTER_CSS: Record<FilterId, string> = {
-  none: '',
-  grayscale: 'grayscale(100%)',
-  sepia: 'sepia(100%)',
-};
-
-function factor(value: number): number {
-  return 1 + value / 100;
-}
-
-/** Single source of truth for preview (style.filter) AND export (ctx.filter). */
-export function buildCssFilter(a: Adjustments, filter: FilterId): string {
-  const parts = [
-    `brightness(${factor(a.brightness)})`,
-    `contrast(${factor(a.contrast)})`,
-    `saturate(${factor(a.saturation)})`,
-    FILTER_CSS[filter],
-  ].filter(Boolean);
-  return parts.join(' ');
-}
-
 export function isDefault(a: Adjustments, filter: FilterId): boolean {
   return (
     a.brightness === DEFAULT_ADJUSTMENTS.brightness &&
