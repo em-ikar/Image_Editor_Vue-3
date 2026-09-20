@@ -29,7 +29,18 @@ async function onExport() {
   }
 }
 
+const confirmReplace = ref(false);
+
 function onReplace() {
+  if (editor.hasEdits) {
+    confirmReplace.value = true;
+  } else {
+    editor.dispose();
+  }
+}
+
+function onConfirmReplace() {
+  confirmReplace.value = false;
   editor.dispose();
 }
 </script>
@@ -83,6 +94,19 @@ function onReplace() {
       Export
     </v-btn>
   </v-app-bar>
+
+  <v-dialog v-model="confirmReplace" max-width="440">
+    <v-card title="Upload a new image?">
+      <v-card-text>
+        Your edits (crop, adjustments, filter) will be lost. Export first if you want to keep the result.
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="confirmReplace = false">Cancel</v-btn>
+        <v-btn color="error" variant="flat" @click="onConfirmReplace">Discard &amp; upload new</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 
   <v-snackbar :model-value="exportError !== null" color="error" timeout="4000" @update:model-value="exportError = null">
     {{ exportError }}
