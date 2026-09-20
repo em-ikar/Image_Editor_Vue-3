@@ -29,6 +29,10 @@ Tooling (implied by the stack): Vite as dev server and bundler.
    derive the preview, never write changes into the source
 5. Export the result by downloading it
 6. At least one filter (greyscale, sepia …)
+7. Bonus: export the operations as JSON next to the PNG, and import that JSON
+   to apply the operations to a loaded image (Operations tab). The ops list is
+   the single source of truth; preview, export and import all go through one
+   `render()` (see the `editor-store` skill and the README).
 
 Out of scope unless I ask: undo/redo, rotation/flip, layers, persistence,
 routing, backend, i18n, tests beyond what I request.
@@ -40,6 +44,7 @@ npm i                 # install (npm only — no pnpm/yarn/bun)
 npm run dev           # dev server
 npm run build         # production build
 npm run type-check    # vue-tsc --build (NOT `vue-tsc --noEmit` at root)
+npm run test          # Vitest unit tests (pure modules + store)
 node .claude/skills/verify-setup/scripts/verify.mjs          # setup checks
 node .claude/skills/verify-setup/scripts/verify.mjs --full   # clean-clone run
 ```
@@ -51,8 +56,11 @@ src/
 ├── main.ts               app, Pinia, Vuetify plugin, `import 'cropperjs'`
 ├── plugins/vuetify.ts    createVuetify, 'vuetify/styles', @mdi/font
 ├── stores/editor.ts      single editor store (useEditorStore)
-├── services/             pure/DOM helpers: imageFilters.ts, exportImage.ts
-├── composables/          reusable logic, if needed
+├── types/operations.ts   Op / EditDocument (the JSON format)
+├── render/               colorOps.ts (pure pixel math), render.ts (the one render())
+├── services/             editDocument, parseEditDocument, planApply (pure);
+│                         imageFilters, exportImage, sha256, aspectRatios
+├── composables/          usePreviewRender (live canvas preview)
 └── components/editor/    UI components (see vue-component skill)
 ```
 
@@ -85,9 +93,10 @@ src/
 A change is done when:
 1. `npm run type-check` passes
 2. `verify.mjs` has no FAIL (use `--full` before a commit meant for submission)
-3. No errors or Vue warnings in the browser console
-4. The affected flow works manually: upload → crop → adjust → filter →
-   view original → reset → download
+3. `npm run test` passes
+4. No errors or Vue warnings in the browser console
+5. The affected flow works manually: upload → crop → adjust → filter →
+   view original → reset → download (PNG + `.ops.json`) → import the JSON
 
 When you finish, briefly report what changed, what you verified, and anything
 you couldn't verify.

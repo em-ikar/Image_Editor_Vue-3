@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useEditorStore } from '@/stores/editor';
-import { downloadBlob, editedFileName, renderToBlob } from '@/services/exportImage';
+import {
+  downloadBlob,
+  editDocumentToBlob,
+  editedFileName,
+  editedOpsFileName,
+  renderToPngBlob,
+} from '@/services/exportImage';
+import { serializeEdits } from '@/services/editDocument';
 
 const editor = useEditorStore();
 
@@ -15,13 +22,24 @@ const dimensionsLabel = computed(() => {
 const exporting = ref(false);
 const exportError = ref<string | null>(null);
 
+const DOWNLOAD_GAP_MS = 300;
+
 async function onExport() {
-  const original = editor.original;
-  if (!editor.workingUrl || !original) return;
+  const { original, image } = editor;
+  if (!original || !image) return;
   exporting.value = true;
   try {
-    const blob = await renderToBlob(editor.workingUrl, editor.cssFilter, original.type);
-    downloadBlob(blob, editedFileName(original.name));
+    const png = await renderToPngBlob(image, editor.ops);
+    const doc = serializeEdits({
+      source: { name: original.name, width: original.width, height: original.height, sha256: original.sha256 },
+      adjustments: editor.adjustments,
+      filter: editor.filter,
+      crop: editor.crop,
+    });
+    downloadBlob(png, editedFileName(original.name));
+    // Browsers may block back-to-back programmatic downloads, so space them out.
+    await new Promise((resolve) => setTimeout(resolve, DOWNLOAD_GAP_MS));
+    downloadBlob(editDocumentToBlob(doc), editedOpsFileName(original.name));
   } catch (e) {
     exportError.value = e instanceof Error ? e.message : 'Export failed.';
   } finally {

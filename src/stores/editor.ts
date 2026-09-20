@@ -1,12 +1,11 @@
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
-import {
-  DEFAULT_ADJUSTMENTS,
-  buildCssFilter,
-  isDefault,
-  type Adjustments,
-  type FilterId,
-} from '@/services/imageFilters';
+import { computed, ref, shallowRef } from 'vue';
+import { DEFAULT_ADJUSTMENTS, isDefault, type Adjustments, type FilterId } from '@/services/imageFilters';
+import { isFullCrop, opsToState, stateToOps } from '@/services/editDocument';
+import { parseEditDocumentText } from '@/services/parseEditDocument';
+import { planApply } from '@/services/planApply';
+import { sha256Hex } from '@/services/sha256';
+import type { CropRect, EditDocument } from '@/types/operations';
 
 export interface OriginalImage {
   name: string;
@@ -14,14 +13,15 @@ export interface OriginalImage {
   url: string;
   width: number;
   height: number;
+  sha256: string;
 }
 
-export type EditorMode = 'crop' | 'adjust';
+export type EditorMode = 'crop' | 'adjust' | 'operations';
 
-function readSize(url: string): Promise<{ width: number; height: number }> {
+function decodeImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onload = () => resolve(img);
     img.onerror = () => reject(new Error('Could not decode this image.'));
     img.src = url;
   });
@@ -29,19 +29,33 @@ function readSize(url: string): Promise<{ width: number; height: number }> {
 
 export const useEditorStore = defineStore('editor', () => {
   const original = ref<OriginalImage | null>(null);
-  const croppedUrl = ref<string | null>(null);
+  // Decoded original for rendering. Shallow so Vue never proxies the DOM element.
+  const image = shallowRef<HTMLImageElement | null>(null);
+  const crop = ref<CropRect | null>(null);
   const adjustments = ref<Adjustments>({ ...DEFAULT_ADJUSTMENTS });
   const filter = ref<FilterId>('none');
   const mode = ref<EditorMode>('adjust');
   const showOriginal = ref(false);
 
+  // Imported operations file. Survives image uploads; only clearOperations() removes it.
+  const importedDoc = ref<EditDocument | null>(null);
+  const importedFileName = ref<string | null>(null);
+  const importErrors = ref<string[]>([]);
+  const importResult = ref<{ warnings: string[] } | null>(null);
+
   const hasImage = computed(() => original.value !== null);
-  const workingUrl = computed(() => croppedUrl.value ?? original.value?.url ?? null);
-  const cssFilter = computed(() => buildCssFilter(adjustments.value, filter.value));
+  // The list of operations is the single source of truth for what the image looks like.
+  const ops = computed(() =>
+    original.value
+      ? stateToOps({ adjustments: adjustments.value, filter: filter.value, crop: crop.value }, original.value)
+      : [],
+  );
   const hasAdjustmentEdits = computed(() => !isDefault(adjustments.value, filter.value));
-  const hasEdits = computed(() => croppedUrl.value !== null || hasAdjustmentEdits.value);
-  const previewUrl = computed(() => (showOriginal.value ? (original.value?.url ?? null) : workingUrl.value));
-  const previewFilter = computed(() => (showOriginal.value ? '' : cssFilter.value));
+  const hasEdits = computed(() => ops.value.length > 0);
+  // What applying the imported file to the loaded image would do (null until both exist).
+  const importPlan = computed(() =>
+    importedDoc.value && original.value ? planApply(importedDoc.value, original.value) : null,
+  );
 
   function revoke(url: string | null | undefined) {
     if (url) URL.revokeObjectURL(url);
@@ -53,25 +67,32 @@ export const useEditorStore = defineStore('editor', () => {
     }
     const url = URL.createObjectURL(file);
     try {
-      const size = await readSize(url);
+      const [decoded, sha256] = await Promise.all([decodeImage(url), sha256Hex(file)]);
       dispose();
-      original.value = { name: file.name, type: file.type, url, ...size };
-      mode.value = 'adjust';
+      image.value = decoded;
+      original.value = {
+        name: file.name,
+        type: file.type,
+        url,
+        width: decoded.naturalWidth,
+        height: decoded.naturalHeight,
+        sha256,
+      };
+      leaveCropMode();
     } catch (error) {
       URL.revokeObjectURL(url);
       throw error;
     }
   }
 
-  function applyCrop(blob: Blob) {
-    revoke(croppedUrl.value);
-    croppedUrl.value = URL.createObjectURL(blob);
+  function applyCrop(rect: CropRect) {
+    const source = original.value;
+    crop.value = source && isFullCrop(rect, source) ? null : rect;
     mode.value = 'adjust';
   }
 
   function clearCrop() {
-    revoke(croppedUrl.value);
-    croppedUrl.value = null;
+    crop.value = null;
   }
 
   function setAdjustment(key: keyof Adjustments, value: number) {
@@ -91,11 +112,16 @@ export const useEditorStore = defineStore('editor', () => {
     clearCrop();
     resetAdjustments();
     showOriginal.value = false;
-    mode.value = 'adjust';
+    leaveCropMode();
   }
 
   function toggleOriginal(value = !showOriginal.value) {
     showOriginal.value = value;
+  }
+
+  // Only crop mode depends on an image; the other tabs stay put on upload / reset.
+  function leaveCropMode() {
+    if (mode.value === 'crop') mode.value = 'adjust';
   }
 
   function setMode(value: EditorMode) {
@@ -106,27 +132,64 @@ export const useEditorStore = defineStore('editor', () => {
     clearCrop();
     revoke(original.value?.url);
     original.value = null;
+    image.value = null;
     resetAdjustments();
     showOriginal.value = false;
-    mode.value = 'adjust';
+    importResult.value = null; // an "applied" message describes the image that was just replaced
+    leaveCropMode();
+  }
+
+  async function loadOperationsFile(file: File) {
+    importResult.value = null;
+    importedFileName.value = file.name;
+    try {
+      const result = parseEditDocumentText(await file.text());
+      importedDoc.value = result.ok ? result.doc : null;
+      importErrors.value = result.ok ? [] : result.errors;
+    } catch {
+      importedDoc.value = null;
+      importErrors.value = ['Could not read this file.'];
+    }
+  }
+
+  function clearOperations() {
+    importedDoc.value = null;
+    importedFileName.value = null;
+    importErrors.value = [];
+    importResult.value = null;
+  }
+
+  /** Replaces the current edits with the imported operations. The original is untouched. */
+  function applyOperations() {
+    const plan = importPlan.value;
+    if (!plan) return;
+    const state = opsToState(plan.ops);
+    adjustments.value = state.adjustments;
+    filter.value = state.filter;
+    crop.value = state.crop;
+    showOriginal.value = false;
+    importResult.value = { warnings: plan.warnings };
   }
 
   return {
     // state
     original,
-    croppedUrl,
+    image,
+    crop,
     adjustments,
     filter,
     mode,
     showOriginal,
+    importedDoc,
+    importedFileName,
+    importErrors,
+    importResult,
     // getters
     hasImage,
-    workingUrl,
-    cssFilter,
+    ops,
     hasAdjustmentEdits,
     hasEdits,
-    previewUrl,
-    previewFilter,
+    importPlan,
     // actions
     loadFile,
     applyCrop,
@@ -137,6 +200,9 @@ export const useEditorStore = defineStore('editor', () => {
     resetAll,
     toggleOriginal,
     setMode,
+    loadOperationsFile,
+    clearOperations,
+    applyOperations,
     dispose,
   };
 });
