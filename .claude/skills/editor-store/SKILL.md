@@ -22,85 +22,81 @@ This skill defines **what** the editor state is and how the features fit.
 Do not add features outside this list (undo/redo, rotation, layers, URL sync,
 persistence) unless the user asks. Scope creep hurts a test task.
 
-## Core model: original → derived
+## Core model: original → ops → render
 
 ```
-original (File + object URL, immutable)
-   │  crop (optional, re-done from original every time)
+original (File + object URL + decoded HTMLImageElement, immutable)
+   │  edit state: crop rect (natural px) + adjustments (-100..100) + filter id
    ▼
-croppedUrl (derived bitmap, replaceable, nullable)
-   │  adjustments + filter (numbers, never baked into a bitmap in the store)
+ops: Op[]   ← stateToOps(), the single source of truth (canonical order,
+   │          neutral ops omitted; UI scale converted to factors in ONE place)
    ▼
-preview  = <img :src="workingUrl" :style="{ filter: cssFilter }">
-export   = canvas.drawImage(workingUrl) with ctx.filter = cssFilter
+render(source, ops, canvas)   ← src/render/render.ts, own pixel math
+   ├─ live preview: source = downscaled base (<= 2048 px), rAF-throttled
+   ├─ export:       source = full-resolution original → PNG
+   └─ JSON:         serializeEdits() → <name>-edited.ops.json
 ```
 
-- `workingUrl = croppedUrl ?? originalUrl`
-- Never write pixels back into the original. Never overwrite `originalUrl`
-  except when a new file is loaded.
-- Re-cropping always starts from the **original**, not from the previous
-  crop, so crops don't compound and quality doesn't degrade.
+- No CSS `filter` / `ctx.filter` anywhere: colour math lives in
+  `src/render/colorOps.ts` (pure, `Uint8ClampedArray`, unit-tested) and is the
+  same for preview, export and the future JSON replay. Formulas are in the README.
+- Never write pixels back into the original. Re-cropping always starts from the
+  original; a crop is only a rectangle in the original's natural pixels.
 
 ## Store shape
 
 One store: `src/stores/editor.ts`, setup store, `useEditorStore`.
-Full reference implementation: `references/store-template.md`.
 
-State (all serializable — no DOM elements, no cropper elements, no canvases):
-- `original: { name: string; type: string; url: string; width: number; height: number } | null`
-- `croppedUrl: string | null`
-- `adjustments: { brightness: number; contrast: number; saturation: number }` — percents, default `100`
-- `filter: FilterId` — `'none' | 'grayscale' | 'sepia'` (extend the union to add more)
-- `mode: 'crop' | 'adjust'`
-- `showOriginal: boolean` — compare toggle, does NOT reset edits
+State:
+- `original: { name, type, url, width, height, sha256 } | null` (sha256 of the file bytes, computed on upload)
+- `image: HTMLImageElement | null` — decoded original, a `shallowRef` (never proxied)
+- `crop: CropRect | null` — natural-pixel integers; `null` = whole image
+- `adjustments: { brightness, contrast, saturation }` — UI scale -100..100, default `0`
+- `filter: FilterId` — `'none' | 'grayscale' | 'sepia'`
+- `mode: 'crop' | 'adjust'`, `showOriginal: boolean` (compare toggle, keeps edits)
 
-Getters:
-- `workingUrl`, `hasImage`, `hasEdits`
-- `cssFilter` — built by the single pure function `buildCssFilter()`
+Imported operations (kept across image uploads, removed only by `clearOperations()`):
+`importedDoc`, `importedFileName`, `importErrors`, `importResult` (warnings after an apply).
 
-Actions:
-- `loadFile(file)`, `applyCrop(blob)`, `clearCrop()`
-- `setAdjustment(key, value)`, `setFilter(id)`
-- `resetAdjustments()`, `resetAll()` (crop + adjustments + filter), `toggleOriginal()`
-- `dispose()` — revoke all object URLs
+Getters: `hasImage`, `ops`, `hasAdjustmentEdits`, `hasEdits` (= `ops.length > 0`),
+`importPlan` (`planApply()` of the imported doc against the loaded image, or null).
+
+Actions: `loadFile(file)`, `applyCrop(rect)`, `clearCrop()`, `setAdjustment`,
+`setFilter`, `resetAdjustments`, `resetAll`, `toggleOriginal`, `setMode`, `dispose`,
+`loadOperationsFile(file)`, `clearOperations()`, `applyOperations()` (replaces the edits
+with `importPlan.ops` via `opsToState`; does not change the tab).
+
+`mode` is `'crop' | 'adjust' | 'operations'`. Only crop mode needs an image, so
+upload / reset / dispose only leave crop mode (`leaveCropMode`).
 
 ## Rules that matter
 
-- **One filter builder, used twice.** `buildCssFilter()` in
-  `src/services/imageFilters.ts` produces the CSS filter string. Preview uses
-  it in `style.filter`, export uses the same string in `ctx.filter`. This is
-  what makes the download match the preview. Never duplicate the formula.
-- **Live preview = CSS filter on `<img>`**, not canvas redraws on every slider
-  tick. It's GPU-accelerated and needs no throttling.
-- **View original**: when `showOriginal` is true, preview shows `originalUrl`
-  with no filter. Edits stay in the store and come back when toggled off.
-- **Object URL lifecycle**: every `URL.createObjectURL` has a matching
-  `revokeObjectURL` — when replacing `croppedUrl`, loading a new file, and in
-  `dispose()`.
-- **Export lives in a service**, `src/services/exportImage.ts`, not in the store:
-  it needs DOM (`Image`, `canvas`). The store action only passes data to it.
-  Export at the working image's natural size.
-- **Cropper boundary**: the crop component (see `cropperjs` skill) loads
-  `originalUrl`, and on "Apply" calls `store.applyCrop(blob)` with the
-  natural-size `$toCanvas` result. The store never touches cropper elements.
-- **Sliders with Vuetify**: bind with a computed getter/setter or
-  `storeToRefs`, e.g. `<v-slider v-model="brightness" :min="0" :max="200" :step="1" />`.
-  Don't destructure the store directly.
+- **Ops are the source of truth.** Anything that changes how the image looks
+  must be expressible as an `Op` (`src/types/operations.ts`). To add an
+  adjustment: extend `Op`, `stateToOps`/`opsToState`, `applyColorOps`, the
+  README formulas and the tests.
+- **One render function** for preview and export. Don't duplicate the maths.
+- **Live preview** = `<canvas>` drawn by `usePreviewRender` from a downscaled
+  base; bases are rebuilt only when the image or crop changes.
+- **View original** draws the uncropped base with no ops. Edits stay in the store.
+- **Object URLs**: only `original.url` exists now; revoke it on replace/`dispose()`.
+- **Export lives in a service**, `src/services/exportImage.ts`: PNG via `render()`,
+  plus the JSON blob; two sequential downloads with a small delay.
+- **Import**: `parseEditDocument` (validation, all errors collected) and
+  `planApply` (hash check, crop clamp/drop, quantizing) are pure; the UI is
+  `OperationsPanel.vue`. Imported ops go through the same store state and the
+  same `render()` — never a second render path.
+- **Cropper boundary**: `CropperPanel` maps the selection to natural pixels and
+  calls `store.applyCrop(rect)`. The store never touches cropper elements.
+- **Sliders with Vuetify**: bind with a computed getter/setter; don't destructure the store.
 - File validation happens in `loadFile`: reject non-`image/*` types.
-
-## Known caveat
-
-`CanvasRenderingContext2D.filter` has historically been missing in Safari.
-If export must work there, add a pixel-loop fallback in `exportImage.ts`
-(apply brightness/contrast/saturation/filter on `getImageData`) behind a
-feature check. Check current support before deciding.
 
 ## Done checklist
 
 - [ ] Original never mutated; reset returns exactly the uploaded image
-- [ ] Sliders update preview instantly, no canvas work per tick
-- [ ] Downloaded file matches preview (same `buildCssFilter` output)
-- [ ] Re-crop starts from original
+- [ ] Sliders update the canvas preview live (one render per animation frame)
+- [ ] Exported PNG matches the preview; the JSON replays to the same pixels
+- [ ] Re-crop starts from original; crop stored in natural pixels
 - [ ] View original toggles without losing edits
-- [ ] All object URLs revoked; no DOM/cropper objects in the store
-- [ ] `npx vue-tsc --noEmit` passes
+- [ ] `original.url` revoked; no DOM/cropper objects in the store (the decoded image is a `shallowRef`)
+- [ ] `npm run type-check` and `npm run test` pass

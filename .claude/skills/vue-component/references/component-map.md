@@ -2,32 +2,58 @@
 
 ```
 src/
-├── App.vue                         v-app shell, renders EditorLayout
+├── App.vue                         v-app shell: AppEditorBar + v-main > EditorLayout
 ├── components/
 │   └── editor/
-│       ├── EditorLayout.vue        layout only: empty state vs editor (sidebar + stage)
-│       ├── ImageUpload.vue         v-file-input / drop zone → store.loadFile(file)
-│       ├── EditorStage.vue         switches by store.mode: CropperPanel | ImagePreview
-│       ├── CropperPanel.vue        cropper (see cropperjs skill), Apply/Cancel → store.applyCrop
-│       ├── ImagePreview.vue        <img :src="previewUrl" :style="{ filter: previewFilter }">
-│       ├── AdjustmentsPanel.vue    3 × AdjustmentSlider bound to store adjustments
-│       ├── AdjustmentSlider.vue    reusable: label + v-slider + value + reset (defineModel, no store)
-│       ├── FilterPicker.vue        v-chip-group / v-btn-toggle over FILTERS → store.setFilter
-│       └── EditorToolbar.vue       Crop, View original, Reset, Download (export service)
+│       ├── AppEditorBar.vue        v-app-bar: file info, Edited chip, Replace/Reset/Export
+│       ├── EditorLayout.vue        layout: upload vs editor (drawer + stage), tabs Crop | Adjust | Operations (v-tabs + v-if), owns crop-session UI state
+│       ├── ImageUpload.vue         drop zone + hidden file input → store.loadFile(file)
+│       ├── EditorStage.vue         switches by store.mode: CropperPanel | ImagePreview; owns zoom state; renders StageToolbar
+│       ├── StageToolbar.vue        reusable: zoom in/out/fit + View original (props/emits, no store)
+│       ├── CropperPanel.vue        cropper (see cropperjs skill); apply() exposed, calls store.applyCrop(rect in natural px)
+│       ├── CropPanel.vue           drawer content for the Crop tab: aspect ratio chips, output size, Cancel/Apply
+│       ├── ImagePreview.vue        <canvas> drawn by usePreviewRender (shared render(), downscaled base)
+│       ├── OperationsPanel.vue     drawer content for the Operations tab: load .ops.json, summary, errors, Apply + confirm dialog
+│       ├── AdjustmentsPanel.vue    3 × AdjustmentSlider + FilterPicker bound to store
+│       ├── AdjustmentSlider.vue    reusable: label + v-slider + value box + reset (defineModel, no store)
+│       └── FilterPicker.vue        v-chip-group over FILTERS → store.setFilter
+├── services/
+│   ├── imageFilters.ts             Adjustments/FilterId types, FILTERS, isDefault()
+│   ├── exportImage.ts              renderToPngBlob/downloadBlob/file names (DOM/canvas)
+│   ├── editDocument.ts             stateToOps/opsToState/serializeEdits/formatOp (pure)
+│   ├── parseEditDocument.ts        validation of imported JSON, collects all errors (pure)
+│   ├── planApply.ts                hash check, crop clamp/drop, quantize → ops + warnings (pure)
+│   └── aspectRatios.ts             ASPECT_RATIOS, resolveAspectRatio(), formatRatioLabel()
+└── stores/
+    └── editor.ts                   useEditorStore
 ```
 
 ## Data flow
 
 ```
-ImageUpload ──loadFile──▶ store ◀──applyCrop── CropperPanel
+ImageUpload ──loadFile──▶ store
                             │
       AdjustmentsPanel ──setAdjustment──▶ store
       FilterPicker ──setFilter──▶ store
-      EditorToolbar ──toggleOriginal / resetAll / mode──▶ store
+      AppEditorBar ──resetAll / dispose──▶ store
+      EditorStage ──toggleOriginal──▶ store
                             │
                             ▼
-      ImagePreview reads previewUrl + previewFilter
-      EditorToolbar reads workingUrl + cssFilter → exportImage service → download
+      EditorStage reads store.mode to switch CropperPanel | ImagePreview
+      ImagePreview reads previewUrl + previewFilter (props from EditorStage)
+      AppEditorBar reads image + ops → renderToPngBlob + serializeEdits → PNG and .ops.json downloads
+
+Crop session (aspect ratio id, live output size) is local state in
+EditorLayout, not in the store — it's ephemeral UI state for the Crop tab,
+not part of the non-destructive edit model:
+
+EditorLayout (aspectId, cropSize)
+  ├─▶ CropPanel (props: aspectId, cropSize, originalRatioLabel)
+  │     emits select-aspect / cancel / apply ──▶ EditorLayout
+  └─▶ EditorStage (prop: aspectRatio) ──▶ CropperPanel (prop: aspectRatio)
+        CropperPanel emits selection-change ──▶ EditorStage ──▶ EditorLayout (cropSize)
+        EditorLayout.applyCrop() calls stage.applyCrop() → cropperPanel.apply()
+        → CropperPanel maps the selection to natural pixels and calls store.applyCrop(rect)
 ```
 
 ## Example: reusable slider (no store)
