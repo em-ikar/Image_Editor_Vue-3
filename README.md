@@ -5,6 +5,8 @@ sliders, apply a filter, compare with the original, and download the result.
 Edits are non-destructive — the original image is always kept, the preview is
 derived from it.
 
+![Image](./_design/all.png)
+
 ## Stack
 
 - [Vue 3](https://vuejs.org/) (`<script setup lang="ts">`, Composition API)
